@@ -42,27 +42,33 @@ export class WeatherComponent {
   }
 
   extractDailyForecast() {
-    const dailyMap: { [date: string]: any[] } = {};
+  const dailyMap: { [date: string]: any[] } = {};
 
-    this.forecastData.list.forEach((entry: any) => {
-      const date = entry.dt_txt.split(' ')[0];
-      if (!dailyMap[date]) {
-        dailyMap[date] = [];
-      }
-      dailyMap[date].push(entry);
-    });
+  this.forecastData.list.forEach((entry: any) => {
+    const date = entry.dt_txt.split(' ')[0];
+    if (!dailyMap[date]) {
+      dailyMap[date] = [];
+    }
+    dailyMap[date].push(entry);
+  });
 
-    this.dailyForecast = Object.keys(dailyMap).slice(1, 6).map(date => {
-      const entries = dailyMap[date];
-      const avgTemp = entries.reduce((sum, val) => sum + val.main.temp, 0) / entries.length;
-      return {
-        date,
-        temp: avgTemp.toFixed(1),
-        description: entries[0].weather[0].description,
-        icon: entries[0].weather[0].icon
-      };
-    });
-  }
+  this.dailyForecast = Object.keys(dailyMap).slice(1, 6).map(date => {
+    const entries = dailyMap[date];
+    
+    const maxTemp = Math.max(...entries.map(e => e.main.temp_max));
+
+    let iconEntry = entries.find(e => e.dt_txt.includes('12:00:00')) 
+                 || entries.find(e => e.dt_txt.includes('15:00:00'))
+                 || entries[0];
+
+    return {
+      date,
+      temp: maxTemp.toFixed(1),
+      description: iconEntry.weather[0].description,
+      icon: iconEntry.weather[0].icon
+    };
+  });
+}
 
   extractHourlyForecast() {
     this.hourlyForecast = this.forecastData.list.slice(0, 6).map((entry: any) => {
