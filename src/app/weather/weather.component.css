@@ -1,0 +1,26 @@
+input {
+  padding: 5px;
+  margin-right: 10px;
+  font-size: 16px;
+}
+
+button {
+  padding: 5px 10px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.forecast-box {
+  display: inline-block;
+  margin: 10px;
+  padding: 10px;
+  background-color: #dfe9f5;
+  border-radius: 10px;
+  width: 120px;
+  text-align: center;
+}
+
+.forecast-box img {
+  width: 60px;
+  height: 60px;
+}

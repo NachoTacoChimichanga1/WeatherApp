@@ -1,0 +1,33 @@
+<input type="text" [(ngModel)]="city" placeholder="Въведи град" />
+<button (click)="getWeather()">Покажи прогноза</button>
+
+<div *ngIf="weatherData">
+  <h2>Сега в {{ city }}</h2>
+  <img [src]="'https://openweathermap.org/img/wn/' + weatherData.weather[0].icon + '@2x.png'">
+  <p>{{ weatherData.weather[0].description }}</p>
+  <p>{{ weatherData.main.temp }} °C</p>
+</div>
+
+<hr>
+
+<div *ngIf="hourlyForecast.length">
+  <h3>Прогноза за следващите часове</h3>
+  <div class="forecast-box" *ngFor="let hour of hourlyForecast">
+    <p>{{ hour.time }}</p>
+    <img [src]="'https://openweathermap.org/img/wn/' + hour.icon + '@2x.png'">
+    <p>{{ hour.temp }} °C</p>
+    <p>{{ hour.description }}</p>
+  </div>
+</div>
+
+<hr>
+
+<div *ngIf="dailyForecast.length">
+  <h3>Прогноза за следващите дни</h3>
+  <div class="forecast-box" *ngFor="let day of dailyForecast">
+    <p>{{ day.date }}</p>
+    <img [src]="'https://openweathermap.org/img/wn/' + day.icon + '@2x.png'">
+    <p>{{ day.temp }} °C</p>
+    <p>{{ day.description }}</p>
+  </div>
+</div>
