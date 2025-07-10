@@ -1,83 +1,91 @@
 import { Component } from '@angular/core';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { WeatherService } from './weather.service';
+import { Weather, ForecastEntryRaw, DailyForecast, HourlyForecast } from './models/weather.model';
 
 @Component({
   selector: 'app-weather',
   standalone: true,
-  imports: [CommonModule, HttpClientModule, FormsModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './weather.component.html',
   styleUrls: ['./weather.component.css']
 })
 export class WeatherComponent {
-  weatherData: any;
-  forecastData: any;
-  dailyForecast: any[] = [];
-  hourlyForecast: any[] = [];
-  city: string = 'Sofia';
-  apiKey: string = '8848756ae5d98bd84ed59a63d38945bd';
+  public city: string = 'Sofia';
+  public weatherData: Weather | null = null;
+  public forecastData: ForecastEntryRaw[] = [];
+  public dailyForecast: DailyForecast[] = [];
+  public hourlyForecast: HourlyForecast[] = [];
+  public today: Date = new Date();
 
-  constructor(private http: HttpClient) {}
+  constructor(private weatherService: WeatherService) {}
 
-  getWeather() {
-    const url = `https://api.openweathermap.org/data/2.5/weather?q=${this.city}&units=metric&lang=bg&appid=${this.apiKey}`;
-    this.http.get(url).subscribe(data => {
-      this.weatherData = data;
-      this.getForecast();
-    }, err => {
-      alert('Грешка при търсене на текущата прогноза.');
+  public getWeather(): void {
+    this.weatherService.getCurrentWeather(this.city).subscribe({
+      next: (data: Weather) => {
+        this.weatherData = data;
+        this.today = new Date();
+        this.loadForecasts();
+      },
+      error: () => alert('Грешка при търсене на текущата прогноза.')
     });
   }
 
-  getForecast() {
-    const url = `https://api.openweathermap.org/data/2.5/forecast?q=${this.city}&units=metric&lang=bg&appid=${this.apiKey}`;
-    this.http.get(url).subscribe(data => {
-      this.forecastData = data;
-      this.extractDailyForecast();
-      this.extractHourlyForecast();
-    }, err => {
-      alert('Грешка при зареждане на прогнозата.');
+  private loadForecasts(): void {
+    this.weatherService.getForecast(this.city).subscribe({
+      next: (data: ForecastEntryRaw[]) => {
+        this.forecastData = data;
+        this.dailyForecast = this.extractDailyMinMaxForecast(data);
+        this.hourlyForecast = this.extractHourlyForecast(data);
+      },
+      error: () => alert('Грешка при зареждане на прогноза.')
     });
   }
 
-  extractDailyForecast() {
-  const dailyMap: { [date: string]: any[] } = {};
+  private extractDailyMinMaxForecast(data: ForecastEntryRaw[]): DailyForecast[] {
+    const dailyMap = new Map<string, { minTemp: number; maxTemp: number; description: string; icon: string }>();
 
-  this.forecastData.list.forEach((entry: any) => {
-    const date = entry.dt_txt.split(' ')[0];
-    if (!dailyMap[date]) {
-      dailyMap[date] = [];
-    }
-    dailyMap[date].push(entry);
-  });
+    data.forEach(entry => {
+      const date = entry.dt_txt.split(' ')[0];
+      const temp = entry.main.temp;
+      const desc = entry.weather[0].description;
+      const icon = entry.weather[0].icon;
 
-  this.dailyForecast = Object.keys(dailyMap).slice(1, 6).map(date => {
-    const entries = dailyMap[date];
-    
-    const maxTemp = Math.max(...entries.map(e => e.main.temp_max));
-
-    let iconEntry = entries.find(e => e.dt_txt.includes('12:00:00')) 
-                 || entries.find(e => e.dt_txt.includes('15:00:00'))
-                 || entries[0];
-
-    return {
-      date,
-      temp: maxTemp.toFixed(1),
-      description: iconEntry.weather[0].description,
-      icon: iconEntry.weather[0].icon
-    };
-  });
-}
-
-  extractHourlyForecast() {
-    this.hourlyForecast = this.forecastData.list.slice(0, 6).map((entry: any) => {
-      return {
-        time: entry.dt_txt.split(' ')[1].slice(0, 5),
-        temp: entry.main.temp.toFixed(1),
-        description: entry.weather[0].description,
-        icon: entry.weather[0].icon
-      };
+      if (!dailyMap.has(date)) {
+        dailyMap.set(date, { minTemp: temp, maxTemp: temp, description: desc, icon });
+      } else {
+        const dayData = dailyMap.get(date)!;
+        if (temp < dayData.minTemp) dayData.minTemp = temp;
+        if (temp > dayData.maxTemp) {
+          dayData.maxTemp = temp;
+          dayData.description = desc;
+          dayData.icon = icon;
+        }
+      }
     });
+
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    return Array.from(dailyMap.entries())
+      .filter(([date]) => date > todayStr)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(0, 5)
+      .map(([date, data]) => ({
+        date,
+        minTemp: data.minTemp,
+        maxTemp: data.maxTemp,
+        description: data.description,
+        icon: data.icon
+      }));
+  }
+
+  private extractHourlyForecast(data: ForecastEntryRaw[]): HourlyForecast[] {
+    return data.slice(0, 6).map(entry => ({
+      time: entry.dt_txt.split(' ')[1].substring(0, 5),
+      temp: entry.main.temp,
+      description: entry.weather[0].description,
+      icon: entry.weather[0].icon
+    }));
   }
 }

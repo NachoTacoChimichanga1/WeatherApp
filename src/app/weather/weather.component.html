@@ -1,11 +1,11 @@
 <input type="text" [(ngModel)]="city" placeholder="Въведи град" />
 <button (click)="getWeather()">Покажи прогноза</button>
 
-<div *ngIf="weatherData">
+<div *ngIf="weatherData as wd">
   <h2>Сега в {{ city }}</h2>
-  <img [src]="'https://openweathermap.org/img/wn/' + weatherData.weather[0].icon + '@2x.png'">
-  <p>{{ weatherData.weather[0].description }}</p>
-  <p>{{ weatherData.main.temp }} °C</p>
+  <img *ngIf="wd.weather?.length" [src]="'https://openweathermap.org/img/wn/' + wd.weather[0].icon + '@2x.png'">
+  <p>{{ wd.weather[0].description }}</p>
+  <p>{{ wd.main.temp }} °C</p>
 </div>
 
 <hr>
@@ -15,7 +15,7 @@
   <div class="forecast-box" *ngFor="let hour of hourlyForecast">
     <p>{{ hour.time }}</p>
     <img [src]="'https://openweathermap.org/img/wn/' + hour.icon + '@2x.png'">
-    <p>{{ hour.temp }} °C</p>
+    <p>{{ hour.temp | number:'1.1-1' }} °C</p>
     <p>{{ hour.description }}</p>
   </div>
 </div>
@@ -27,7 +27,8 @@
   <div class="forecast-box" *ngFor="let day of dailyForecast">
     <p>{{ day.date }}</p>
     <img [src]="'https://openweathermap.org/img/wn/' + day.icon + '@2x.png'">
-    <p>{{ day.temp }} °C</p>
+    <p>Мин: {{ day.minTemp | number:'1.1-1' }} °C</p>
+    <p>Макс: {{ day.maxTemp | number:'1.1-1' }} °C</p>
     <p>{{ day.description }}</p>
   </div>
 </div>
